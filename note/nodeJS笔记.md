@@ -47,6 +47,10 @@ let str2 = __dirname+'\a.txt';
 let str3=`${__dirname}\a.txt`;
 ```
 
+## 3.Node.jsAPI
+
+https://nodejs.org/zh-cn/docs
+
 # 1.Buffer（缓冲器）
 
 ## 1.概念 
@@ -689,4 +693,400 @@ console.log(path.dirname('./path.js'));//.
 console.log(path.extname('./path.js'));//.js
 ```
 
-4.
+# 4. http
+
+使用Node.js创建HTTP服务
+
+```javascript
+const http=require('http');
+
+//当接收到请求就会执行
+//request是nodejs对request进行封装一次
+//response就是响应
+let server=http.createServer((request,response)=>{
+    //console.log(request);
+    response.setHeader('content-type','text/html;charset=utf-8');
+    response.end("你好");
+});
+
+//监听端口，启动服务
+server.listen(9000,()=>{
+    console.log("http服务创建成功！");
+});
+```
+
+> + **http.createServer 里的回调函数的执行时机： 当接收到 HTTP 请求的时候，就会执行**
+> + **http服务默认端口是80，hhtps服务默认端口是443**
+
+## 1. Node.js获取请求报文方法
+
+| 方法                                                         | 含义                               |
+| ------------------------------------------------------------ | ---------------------------------- |
+| request.method                                               | 请求方法                           |
+| request.httpVersion                                          | 请求版本                           |
+| request.url                                                  | 请求路径（去掉ip和端口）和请求参数 |
+| require('url').parse(url).pathname                           | 仅URL路径不包含ip和port            |
+| require('url').parse(url,true).query                         | URL查询字符串，返回一个对象        |
+| request.headers                                              | 请求头                             |
+| request.on('data',function(chunk){})<br />request.on('end',function(){}) | 请求体                             |
+| new URL(url,ip)                                              | 推荐使用                           |
+
+```javascript
+const http=require('http');
+const url=require('url');
+let server=http.createServer((request,response)=>{
+    //if(request.url=='/favicon.ico') console.log(request);
+    //console.log(request.method);
+    //console.log(request.httpVersion);
+    //http://127.0.0.1:9000/?t=1 就是/?t=1
+    //console.log(request.url);//请求路径和请求参数
+    //console.log(request.rawHeaders);
+
+    //获取请求体，需要request绑定on-data事件
+    let body='';
+    request.on('data',chunk=>{
+        body += chunk;//会自动转换
+    })
+    request.on('end',()=>{
+        console.log(body);
+    })
+
+
+    //获取查询路径和请求参数，借助url模块进行解析
+    //console.log(url.parse(request.url));
+    //console.log(url.parse(request.url).pathname);
+    //console.log(url.parse(request.url,true).query.t);//返回请求参数对象的方式
+
+    //获取请求信息的第二中方式，URL更方便
+    let urlObj = new URL(request.url,"http://"+request.headers.host);
+    console.log(urlObj);
+    console.log(urlObj.searchParams.get('t'));//获取参数用get方法
+    console.log(urlObj.pathname);
+    //返回
+    response.setHeader('content-type','text/html;charset=utf8');
+    response.end('收到请求\r\n');
+});
+
+
+server.listen(9000,()=>{
+    console.log("http服务启动成功!");
+})
+```
+
+## 2.Node.js获取响应报文方法
+
+| 作用             | 语法                                 |
+| ---------------- | ------------------------------------ |
+| 设置响应状态码   | response.statusCode                  |
+| 设置响应状态描述 | response.statusMessage               |
+| 设置响应头信息   | response.setHeader(key,value)        |
+| 设置相应体       | response.write()<br />response.end() |
+
+```javascript
+const http=require('http');
+let server=http.createServer((request,response)=>{
+    //响应状态码
+    response.statusCode=403;
+    //响应状态码描述
+    response.statusMessage='NOT AUTHORITY';
+    response.setHeader('verity','no');
+    //设置多个同名的响应头，给数组即可
+    response.setHeader('nums',[1,2,3,4,5,6]);
+
+    //设置响应体两个方法：write和end
+    response.write('g\r\n');
+    response.write('o\r\n');
+    response.write('o\r\n');
+    response.write('d\r\n');
+    response.end();//就不传参了，end必须有而且仅有一个
+    //response.end('x');
+});
+
+server.listen(9000,()=>{
+    console.log('服务器启动成功！');
+})
+```
+
+## 3. 网页资源的基本加载过程
+
+可以在开发者工具中看到
+
+[页面加载流程](https://blog.csdn.net/ABCFF12333/article/details/117771857?spm=1001.2101.3001.6650.13&utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7EESLANDING%7Edefault-13-117771857-blog-126046478.pc_relevant_landingrelevant&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7EESLANDING%7Edefault-13-117771857-blog-126046478.pc_relevant_landingrelevant&utm_relevant_index=17)
+
+<img src='img\nodeJS笔记\format,png.png'>'
+
+## 4. 静态资源服务
+
+静态资源是指 内容长时间不发生改变的资源 ，例如图片，视频，CSS 文件，JS文件，HTML文件，字体文
+件等
+动态资源是指 内容经常更新的资源 ，例如百度首页，网易首页，京东搜索列表页面等
+
+### 1. 静态资源目录
+
+HTTP 服务在哪个文件夹中寻找静态资源，那个文件夹就是 静态资源目录 ，也称之为 网站根目录
+
+### 2. 网页中的URL
+
+网页中的URL主要分为两大类：相对路径和绝对路径
+
+#### 2.1 绝对路径
+
+绝对路径可靠性强，而且相对容易理解，在项目中运用较多
+
+| 形式                       | 特点                                                         |
+| -------------------------- | ------------------------------------------------------------ |
+| http://www.atguigu.com/web | 直接向目标资源发送请求，容易理解。网站的外链会用到此形式     |
+| //atguigu.com/web          | 与页面 URL 的协议拼接形成完整 URL 再发送请求。大型网站用的比较多 |
+| /web                       | 与页面 URL 的协议、主机名、端口拼接形成完整 URL 再发送请求。中小型网站 |
+
+
+
+#### 2.2 相对路径
+
+相对路径在发送请求时，需要与当前页面 URL 路径进行 计算 ，得到完整 URL 后，再发送请求，学习阶
+段用的较多
+
+例如当前网页 url 为 http://www.atguigu.com/course/h5.html
+
+| 形式                           | 最终中的url                               |
+| ------------------------------ | ----------------------------------------- |
+| ./css/app.css                  | http://www.atguigu.com/course/css/app.css |
+| js/app.js                      | http://www.atguigu.com/course/js/app.js   |
+| ../img/logo.png                | http://www.atguigu.com/img/logo.png       |
+| ../../mp4/show.mp4(到最顶层了) | http://www.atguigu.com/mp4/show.mp4       |
+
+# 5. 模块化
+
+## 1. 介绍
+
+### 1.1 什么是模块化？
+
+将一个复杂的程序文件依据一定规则（规范）拆分成多个文件的过程称之为 模块化
+
+其中拆分出的 每个文件就是一个模块 ，模块的内部数据是私有的，不过模块可以暴露内部数据以便其他模块使用。
+
+### 1.2 什么是模块化项目？
+
+编码时是按照模块一个一个编码的， 整个项目就是一个模块化的项目
+
+### 1.3  模块化好处
+
++ 防止变量名冲突
++ 高复用性
++ 高维护性
+
+## 2. 模块暴露数据
+
+### 2.1 模块初体验
+
+```javascript
+//tiemo.js
+function tiemo(){
+    console.log('十元一个！');
+}
+//将数据暴露出去
+module.exports=tiemo;
+```
+
+```javascript
+//导入模块,此时当前tiemo就是me.js中tiemo函数
+const tiemo = require('./tiemo');//加不加后缀都可以
+//直接调用，别的都是object，这个是函数不需要点
+tiemo();
+```
+
+### 2.2 暴露数据
+
++ 暴露对象  `module.exports = value`
+
+  ```javascript
+  //写法1.直接暴露函数  直接调用 me=requie('./tiemo.js');me();
+  module.exports=tiemo;
+  //写法2.暴露对象，对象调用me=requie('./tiemo.js');me.tiemo();
+  module.exports={
+      tiemo:tiemo,
+      niejiao:niejiao //如果暴露同名，可以直接写tiemo,niejiao
+  }
+  ```
+
++  暴露变量`exports.name = value`
+
+  ```javascript
+  //tiemo.js
+  exports.tm = tiemo;
+  exports.nj = niejiao;
+  
+  //me.js
+  const me = require('./tiemo');
+  me.tm();
+  me.nj();
+  ```
+
+  > ***注意：modoules.exports可以暴露任意数据***
+  >
+  > `exports`其实就是`modules.exports`，也是一个空对象`{}`，即`exports === modules.exports === {}`。但是由于`require`方法每次返回都是**`modules.exports`**的值，所以
+  >
+  > ```javascript
+  > exports === module.exports === {}
+  > exports.name='zs'; //正确，就是想对象中添加键值对（属性）
+  > module.exports = 'ls' //正确
+  > module.exports = { //正确
+  >     age:13
+  > }
+  > exports = 'zw';//错误的
+  > 
+  > ```
+
+## 3. ==导入模块注意事项==
+
++ 自己建立的模块，导入时建议使用**相对路径**
++ **js**和**json**文件文件导入时可以不用写后缀，c/c++编写的**node**扩展也可以不写后缀
++ 如果导入其他类型的文件，会以**js**格式进行处理
++ ***如果导入的是一个文件夹（即项目模块）***
+  + 先判断该文件夹下**是否存在package.json**文件且，**有main属性**，**并且main属性对应的文件存在**
+  + 如果对应文件存在，则导入成功
+  + 如果main属性对应文件不存在，则导入失败，尝试下一步
+  + 如果**没有main属性，或者package.json不存在**
+    + 尝试导入**index.js**文件，存在导入成功
+    + 如果index.js不存在，再导入**index.json**，如果存在，导入成功
+    + 如果index.json不存在，则导入失败
++ node.js的内置模块，直接导入即可
+
+## 4. 导入模块流程
+
+以自定义模块为例：
+
++ 将相对路径转化为绝对路径
+
++ 进行缓存检测
+
++ 读取目标文件代码
+
++ 将文件包裹为一个函数并执行（自执行函数），通过`arguments.callee.toString()`查看自执行函数
+
+  > ```javascript
+  > //立即执行函数形式 
+  > function(arr1,arr2,arr3){
+  >     ....
+  > }('1','2','3')
+  > ```
+
++ 缓存模块的值
+
++ 返回`module.exports`的值
+
+<img src='img\nodeJS笔记\image-20230323162113382.png'>
+
+## 5. CommonJS规范
+
+module.exports 、 exports 以及 require 这些都是 CommonJS 模块化规范中的内容。
+而 Node.js 是实现了 CommonJS 模块化规范，二者关系有点像 JavaScript 与 ECMAScript
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
