@@ -1265,9 +1265,9 @@ yarn config lsit
 
 大家可以根据不同的场景进行选择
 1. 个人项目
-  如果是个人项目， 哪个工具都可以 ，可以根据自己的喜好来选择
+    如果是个人项目， 哪个工具都可以 ，可以根据自己的喜好来选择
 2. 公司项目
-  如果是公司要根据项目代码来选择，可以 通过锁文件判断 项目的包管理工具
+    如果是公司要根据项目代码来选择，可以 通过锁文件判断 项目的包管理工具
   + npm 的锁文件为 package-lock.json
   + yarn 的锁文件为 yarn.lock
 
@@ -1330,21 +1330,632 @@ nvm 的使用非常的简单，跟 npm 的使用方法类似
 | `nvm  uninstall 18.12.1` | 删除某个版本的 Node.js          |
 | `nvm use 18.12.1`        | 切换 18.12.1 的 Node.js         |
 
+# 8. express框架
+
+## 8.1 express介绍
+
+express 是一个基于 Node.js 平台的极简、灵活的 WEB 应用开发框架，官方网址： https://www.expressjs.com.cn/
+
+简单来说，express 是一个封装好的工具包，封装了很多功能，便于我们开发 WEB 应用（HTTP 服务）
+
+## 8.2 express初体验
+
++ 创建模块，下载express
+
+  ```bash
+  npm init
+  npm i express
+  ```
+
++ 编写index.js文件
+
+  ```javascript
+  const express = require('express');
+  const app = express();
+  
+  //get请求
+  app.get('/home',(req,res)=>{
+      res.end("hello express!");
+  });
+  
+  app.listen(9000,()=>{
+      console.log('服务启动成功!');
+  })
+  ```
+
++ 启动服务
+
+  ```bash
+  node index.js
+  ```
+
++ 访问测试
+
+## 8.3 express路由
+
+### 8.3.1 什么是路由
+
+官方定义： 路由确定了应用程序如何响应客户端对特定端点的请求
+
+***路由=请求方法+路径+回调函数***
+
+### 8.3.2 路由的使用
+
+一个路由的组成有 请求方法 ， 路径 和 回调函数 组成
+express 中提供了一系列方法，可以很方便的使用路由，使用格式如下：
+
+```javascript
+app.<method>(path，callback)
+```
+
+```javascript
+const express = require('express');
+const app = express();
+/**
+ * 按照顺序响应，如果第一个匹配上，就不去找第二个了
+ */
+//get请求
+app.get('/home',(req,res)=>{
+    res.end("hello express!");
+});
+
+//post请求
+app.post('/home',(req,res)=>{
+    res.end("post!");
+});
+
+//所以方式
+app.all('/*',(req,res)=>{
+    res.end("all!");
+});
+
+app.listen(9000,()=>{
+    console.log('服务启动成功!');
+})
+```
+
+### 8.3.3 获取请求参数
+
+```javascript
+const express = require('express');
+let app = express();
+
+app.get('/',(req,res)=>{
+    console.log(req.method);
+    console.log(req.url);//port后面的
+    console.log(req.httpVersion);
+    console.log(req.headers);
+
+    //路径和参数
+    console.log(req.path);
+    console.log(req.query);
+    //获取ip
+    console.log(req.ip);
+    res.end('ok');
+    //获取单独的请求头
+    console.log(req.get('host'));
+
+});
+
+app.listen(9000,()=>{
+    console.log('start server successfully！');
+})
+```
+
+### 8.3.4 获取路由参数
+
+可以理解为商品页的商品id，如：jd.com/415454545.html中的415454545
+
+**通过占位符`:id`**(id随机字符串)
+
+```javascript
+const express = require('express');
+let app = express();
+
+//http://127.0.0.1:9000/454854848.html
+app.get('/:id',(req,res)=>{ //匹配任意字符，但是只能是一层的，像/a/b/c.html是不行的
+    //获取参数
+    console.log(req.params);
+    console.log(req.params.id);//id和:id 保持一致
+
+    res.end('ok');
+
+});
+
+app.listen(9000,()=>{
+    console.log('start server successfully！');
+})
+```
+
+## 8.4 express响应设置
+
+```javascript
+app.get('/:id',(req,res)=>{ 
+    
+    //支持原生响应
+    // res.statusCode = 404;
+    // res.setHeader('content-type','text/html;charset=utf8');
+    // res.statusMessage = '404';
+    // res.write('1');
+    // res.end('ok');
+
+    //express响应
+    res.status(203).status().send();//状态码(可以这样设置)
+    res.set('aaa','bbb');//响应头
+    res.send('hah   ');//响应体，默认utf8，
+    
+    //其他响应
+    res.redirect('baidu.com');//重定向
+    res.download('a.png');//下载响应,客户端下载这个文件
+    res.render();//渲染视图模版 如ejs
+    res.json({
+        'a':'blur',
+        'b':'c'
+    });//响应json
+    res.sendFile('a.txt');//响应文件内容，把文件内容响应
+    res.attachment();//附件
+
+});
+```
+
+## 8.5 express中间件
+
+### 8.5.1 什么是中间件
+
+**中间件（Middleware）本质是一个回调函数**
+**中间件函数 可以像路由回调一样访问 请求对象（request） ， 响应对象（response）**
+
+### 8.5.2 中间件的作用
+
+中间件的作用 就是 使用函数封装公共操作，简化代码
+
+### 8.5.3 中间件分类
+
++ 全局中间件
+
+  > 请求过来，先执行**全局中间件函数**，然后执行路由方法
+
++ 路由中间件
+
+  > 请求过来，直接进入路由，然后调用中间件函数
+
+#### 8.5.3.1 定义全局中间件
+
+```javascript
+//定义一个函数 
+const log = function(req,res,next){
+    ...
+    //执行器链，继续调用路由函数
+    next();
+ }
+
+//使用全局中间件函数
+app.use(log);
+```
+
+#### 8.5.3.2 多个全局中间件
+
+express 允许使用 app.use() 定义多个全局中间件
+
+```javascript
+//可以多次调用 按照先后顺序
+app.use(function (request, response, next) {
+    console.log('定义第一个中间件');
+    next();
+})
+
+app.use(function (request, response, next) {
+    console.log('定义第二个中间件');
+    next();
+})
+```
+
+调用过程：
+
+<img src='img\nodeJS笔记\image-20230324152711322.png' style='zoom:70%'>
+
+#### 8.5.3.3 定义路由中间件
+
+```javascript
+//函数
+let routerMiddleware = (req,res,next) => {
+    if(true) {
+        next();
+    } else {
+        res.send('');
+    }
+}
+
+ //路由中间函数先调用，再执行路由回调函数
+ app.get('/admin',routerMiddleware,函数2,(req,res)=>{ 
+    res.end('admin');	
+});
+```
+
+### 8.5.4 静态资源中间件
+
+```javascript
+//全局中间件函数，实现静态资源调用 (响应文件的同时会自动设置mime类型)
+app.use(express.static(__dirname + '/public'));
+/*
+ 对于绝对路径public下的文件：
+ ip:port/index.html -> /public/index.html
+ ip:port/css/all.css -> /public/css/all.css
+*/
+```
+
+> ***注意事项：***
+>
+> + index.html 文件为默认打开的资源 （访问 / 就等于/index.html）
+> + 如果静态资源与路由规则同时匹配，**谁先匹配谁就响应** （就是自上而下的顺序）
+> + 路由响应动态资源，静态资源中间件响应静态资源
+
+### 8.5.5 获取请求体数据 
+
+#### 方法1：借助第三方插件 body-parser
+
+express 可以使用 `body-parser` 包处理请求体（post请求）
+
+插件网址：https://www.npmjs.com/package/body-parser
+
++ 安装
+
+  ```bash
+  npm i body-parser
+  ```
+
++ 导入
+
+  ```javascript
+  const bodyParser = require('body-parser');
+  ```
+
++ 获取中间件函数
+
+  + 全局中间件
+
+    ```javascript
+    // parse application/x-www-form-urlencoded
+    app.use(bodyParser.urlencoded({ extended: false }))
+    
+    // parse application/json
+    app.use(bodyParser.json())
+    
+    app.use(function (req, res) {
+      res.setHeader('Content-Type', 'text/plain')
+      res.write('you posted:\n')
+      res.end(JSON.stringify(req.body, null, 2))
+    })
+    ```
+
+  + 路由中间件（推荐）
+
+    ```javascript
+    // create application/json parser 解析json格式的请求体
+    const jsonParser = bodyParser.json()
+    
+    // create application/x-www-form-urlencoded parser 解析url格式请求体
+    const urlencodedParser = bodyParser.urlencoded({ extended: false })
+    ```
+
++ 设置路由中间件，然后使用 `request.body`来获取响应数据 （**上面两个中间件函数，分别处理不同格式的请求体，*当中间件函数处理完会给request添加一个属性 body，直接调用即可***）
+
+  ```javascript
+  app.post("/login",urlencodedParser,(req,res) => {
+  	console.log(req.body);
+      res.send('ok');
+  });
+  ```
+
+#### 方法2：express4.0方法
+
++ 声明全局中间件函数
+
+  ```javascript
+  app.use(express.json()); //解析json格式的请求体
+  app.use(express.urlencoded({extended:false})); //解析url格式
+  ```
+
++ 根据body属性获取
+
+  ```javascript
+  app.post("/login",(req,res) => {
+      console.log(req.body);
+      res.send('ok');
+  });
+  ```
+
+## 8.6 防盗链机制
+
+比如某个网页上的图片地址，嵌入到自己网页上，结果发现不显示，别拒绝了。
+
+这就是别人会对请求地址ip进行判断，是不是自己服务下的ip地址。如果不是则阻止该请求，不允许他获取。
+
+```javascript
+let app = express();
+
+//在访问静态资源之前进行鉴权 [下面是禁止ip访问]【依据refer判断，防止img标签】
+app.use((req,res,next)=>{
+    //console.log(req.ip.indexOf('127.0.0.1'));
+    if(req.ip.indexOf('127.0.0.1') !=-1||req.ip.indexOf('192.168.31.54')!=-1) {
+        next();
+    } else{
+    res.statusCode=403;
+    res.send('forbidden');
+    console.log('[outer ip] ' + req.ip);
+    return;
+    }
+});
+app.use(express.static(__dirname+'/'));
+```
+
+## 8.7 Router 模块化
+
+将一个文件里的router（路由）拆分到多个文件中，实现模块化。
+
++ *路由文件（其实就是部分主文件）*
+
+  ```javascript
+  //1,导入express
+  const express = require('express');
+  //2.创建router对象 （这里的router 其实就是小型的express()）
+  let router = express.Router();
+   
+  
+  //3.创建路由（和app一样，正常使用router）
+  router.get('/home',(req,res)=>{ 
+      res.end('home');
+  });
+  
+  router.get('/admin',(req,res)=>{ 
+      res.end('admin');
+  });
+  router.get('/settings',(req,res)=>{ 
+      res.end('settings');
+  });
+  
+  //4.将对象router暴露出去
+  module.exports = router;
+  ```
+
++ *主程序文件*
+
+  ```javascript
+  const express = require('express');
+  //1.引入路由模块
+  const honmeRouter = require('./router/homeRouter');
+  
+  let app = express();
+  //2.使用路由模块（以全局中间件的形式）
+  app.use('/home',honmeRouter);// /home是路由前缀，作用类似于@restcontroller类上 mapping
+  
+  app.all('*',(req,res)=>{ 
+      res.end('404');
+  });
+   
+   app.listen(9000,()=>{
+       console.log('start server successfully！');
+   })
+  ```
+
+## 8.8 EJS模版引擎
+
+### 8.8.1 什么是模版引擎？
+
+模版引擎是分离**用户界面和业务数据**的一种技术
+
+### 8.8.2 什么是EJS
+
+EJS是一个高效的JavaScript的模版引擎
+
+官网: https://ejs.co/
+
+中文网： https://ejs.bootcss.com/
+
+### 8.8.3 EJS初体验
+
++ 安装EJS
+
+  ```bash
+  npm i ejs
+  ```
+
++ 导入ejs包
+
+  ```javascript
+  const ejs = require('ejs');
+  ```
+
++ 使用
+
+  ```javascript
+  //类似jsp   <%= china%>是一个表达式 
+  let str=ejs.render('我爱你 <%= china%>',{china:'中国'});
+  console.log(str);
+  ```
+
+#### 8.8.4 EJS语法
+
+网址：[EJS -- Embedded JavaScript templates](https://ejs.co/#install)
+
+- `<%` 'Scriptlet' tag, for control-flow, no output
+- `<%_` ‘Whitespace Slurping’ Scriptlet tag, strips all whitespace before it
+- `<%=` Outputs the value into the template (HTML escaped)
+- `<%-` Outputs the unescaped value into the template
+- `<%#` Comment tag, no execution, no output
+- `<%%` Outputs a literal '<%'
+- `%>` Plain ending tag
+- `-%>` Trim-mode ('newline slurp') tag, trims following newline
+- `_%>` ‘Whitespace Slurping’ ending tag, removes all whitespace after it
 
 
 
+### 8.8.5 express使用ejs
+
++ 代码
+
+  ```javascript
+  const express = require('express'); 
+  const path = require('path');
+  
+  let app = express();
+  
+  //设置express的模版引擎
+  app.set('view engine','ejs'); //express就会去找ejs结尾的文件（类似vue）
+  //设置模版文件位置
+  app.set('views', path.resolve(__dirname,'./views')); //不能用绝对路径即 /开头
+  
+  app.get('/',(req,res)=>{
+      //发送模版文件，进行渲染 （模块文件名，数据）
+      res.render("index",{title:'欢迎观临'});
+  });
+  
+  app.listen(9000);
+  ```
+
++ 文件 ***注意文件名后缀是ejs***
+
+  ```html
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>首页</title>
+  </head>
+  <body>
+      <h1>
+          <%= title %>
+      </h1>
+  </body>
+  </html>
+  ```
+
+### 8.8.6 express-generator
+
+网址：[Express 应用程序生成器 - Express 中文文档 | Express 中文网 (expressjs.com.cn)](https://www.expressjs.com.cn/starter/generator.html)
+
+通过应用生成器工具 `express-generator` 可以快速创建一个应用的骨架。
+
++ 安装全局环境包
+
+  ```bash
+  npm i -g express-generator
+  ```
+
++ 检验是否成功
+
+  ```bash
+  express -h
+  ```
+
+  > <img src='\img\image-20230324223309557.png'>
+
++ 输入命令创建项目demo(脚手架)
+
+  ```bash
+  # 以ejs为模版引擎的web项目demo就安装在当前文件夹下demo文件夹中
+  express -e demo 
+  ```
+
+  <img src='\img\image-20230324223636109.png'>
+
++ `npm i` 安装所有依赖
+
++ 查看package.json中script属性，剖析项目的启动流程
+
+  ```json
+  {
+    "name": "demo",
+    "version": "0.0.0",
+    "private": true,
+    "scripts": {
+      "start": "node ./bin/www" //项目启动脚本为bin目录下的www
+    },
+    "dependencies": {
+      "cookie-parser": "~1.4.4",
+      "debug": "~2.6.9",
+      "ejs": "~2.6.1",
+      "express": "~4.16.1",
+      "http-errors": "~1.6.3",
+      "morgan": "~1.9.1"
+    }
+  }
+  ```
+
++ 逐渐分析其余文件
+
+> ```javascript
+> //路由前缀，即【IP诶地址必须是/users开头的
+> app.use('/users', usersRouter);
+> ```
 
 
 
+## 8.9 文件上传
 
++ 页面代码
 
+  ```html
+  <form action="/upload" method="post" enctype="multipart/form-data">
+          点击上传文件： <br>
+          <input type="file" name="uploadFile"> <br>
+          <button type="submit">上传</button> <br>
+      </form>
+  ```
 
++ 后台代码
 
+  + 安装依赖包`formidable`，处理文件数据
 
+    插件网址：[formidable - npm (npmjs.com)](https://www.npmjs.com/package/formidable)
 
+    ```bash
+    npm i formidable
+    ```
 
+  + 使用
 
+    ```javascript
+    var express = require('express');
+    let formidable = require('formidable');
+    var router = express.Router();
+    
+    router.get('/', function(req, res, next) {
+      res.render('fileupload');//返回ejs模版文件
+    });
+    
+    router.post('/', function(req, res, next) {
+        const form = formidable({
+            multiples: true,
+            //设置文件保存目录 __dirname表示当前正在运行的脚本所在目录（不是启动脚本的目录）
+            uploadDir: __dirname + '/../upload',
+            //设置文件保存后缀
+            keepExtensions: true,
+            filename: (name,ext,part,form) => { //不加这个字段就使用默认生成的新名字
+                return part.originalFilename;
+            }
+        });
+        //fields请求参数（如：a=1&b=2）
+        //files中保存的是文件
+        form.parse(req,(err,fields,files)=>{
+            //console.log(__dirname + '/../upload');
+            if(err) {
+                next(err);
+                return;
+            }
+    
+            // console.log(fields);
+            // console.log(files);
+        });
+        res.send('ok');
+      });
+      
+    module.exports = router;
+    ```
 
+    
 
 
 
